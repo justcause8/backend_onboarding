@@ -1,9 +1,9 @@
 ﻿using backend_onboarding.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
-using RimsUser = backend_onboarding.Models.Entities.DbOnboardingRIMS.User;
-using OnboardingUser = backend_onboarding.Models.Entities.DbOnboarding.User;
-using backend_onboarding.Models.Entities.DbOnboarding;
-using backend_onboarding.Models.Entities.DbOnboardingRIMS;
+using RimsUser = backend_onboarding.Models.Entitie.DbOnboardingRIMS.User;
+using OnboardingUser = backend_onboarding.Models.Entitie.DbOnboarding.User;
+using backend_onboarding.Models.Entitie.DbOnboarding;
+using backend_onboarding.Models.Entitie.DbOnboardingRIMS;
 
 namespace backend_onboarding.Services.Authentication
 {

@@ -4,7 +4,7 @@
     public class UserAuthRequest
     {
         public int Id { get; set; }
-        public string Name { get; set; } // Обычно это Caption
+        public string Name { get; set; }
         public string Login { get; set; }
         public string Role { get; set; }
     }

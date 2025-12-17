@@ -1,5 +1,5 @@
 ﻿using backend_onboarding.Models.DTOs;
-using backend_onboarding.Models.Entities.DbOnboardingRIMS;
+using backend_onboarding.Models.Entitie.DbOnboardingRIMS;
 namespace backend_onboarding.Services.Rims
 {
     public interface IRimsService

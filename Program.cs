@@ -1,5 +1,5 @@
-using backend_onboarding.Models.Entities.DbOnboarding;
-using backend_onboarding.Models.Entities.DbOnboardingRIMS;
+using backend_onboarding.Models.Entitie.DbOnboarding;
+using backend_onboarding.Models.Entitie.DbOnboardingRIMS;
 using backend_onboarding.Services.Authentication;
 using backend_onboarding.Services.Onboarding;
 using backend_onboarding.Services.Rims;
