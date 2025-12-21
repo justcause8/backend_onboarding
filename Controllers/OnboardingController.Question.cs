@@ -1,4 +1,6 @@
 ﻿using backend_onboarding.Models.DTOs;
+using backend_onboarding.Services.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend_onboarding.Controllers
@@ -6,6 +8,7 @@ namespace backend_onboarding.Controllers
     public partial class OnboardingController : ControllerBase
     {
         [HttpGet("test/{testId}/questions")]
+        [Authorize]
         public async Task<IActionResult> GetQuestions(int testId)
         {
             var questions = await _onboardingService.GetQuestionsByTestIdAsync(testId);
@@ -13,6 +16,7 @@ namespace backend_onboarding.Controllers
         }
 
         [HttpPost("question")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> CreateQuestion([FromBody] CreateQuestionRequest request)
         {
             var id = await _onboardingService.CreateQuestionAsync(request);
@@ -20,6 +24,7 @@ namespace backend_onboarding.Controllers
         }
 
         [HttpPut("question/{id}")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> UpdateQuestion(int id, [FromBody] CreateQuestionRequest request)
         {
             var success = await _onboardingService.UpdateQuestionAsync(id, request);
@@ -28,6 +33,7 @@ namespace backend_onboarding.Controllers
         }
 
         [HttpDelete("question/{id}")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> DeleteQuestion(int id)
         {
             var success = await _onboardingService.DeleteQuestionAsync(id);

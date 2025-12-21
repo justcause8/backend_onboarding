@@ -33,7 +33,7 @@ namespace backend_onboarding.Services.Onboarding
         {
             // Получаем все ID этапов этого маршрута
             var stageIds = await _onboardingContext.OnboardingStages
-                .Where(s => s.Fk1OnbordingRouteId == routeId)
+                .Where(s => s.FkOnbordingRouteId == routeId)
                 .Select(s => s.Id)
                 .ToListAsync();
 
@@ -82,30 +82,59 @@ namespace backend_onboarding.Services.Onboarding
         // СОЗДАНИЕ
         public async Task<bool> AddStagesToRouteAsync(AddStagesToRouteRequest request)
         {
-            var routeExists = await _onboardingContext.OnboardingRoutes.AnyAsync(r => r.Id == request.RouteId);
-            if (!routeExists) return false;
+            var route = await _onboardingContext.OnboardingRoutes
+                .Include(r => r.UserOnboardingRouteStatuses)
+                .FirstOrDefaultAsync(r => r.Id == request.RouteId);
 
-            var stages = request.Stages.Select(s => new OnboardingStage
+            if (route == null) return false;
+
+            var newStages = request.Stages.Select(s => new OnboardingStage
             {
-                Fk1OnbordingRouteId = request.RouteId,
+                FkOnbordingRouteId = request.RouteId,
                 Title = s.Title,
                 Description = s.Description,
-                OrderIndex = s.Order // Используем Order из DTO для OrderIndex
+                OrderIndex = s.Order
             }).ToList();
 
-            _onboardingContext.OnboardingStages.AddRange(stages);
-            return await _onboardingContext.SaveChangesAsync() > 0;
+            _onboardingContext.OnboardingStages.AddRange(newStages);
+            await _onboardingContext.SaveChangesAsync();
+
+            var currentParticipantIds = route.UserOnboardingRouteStatuses
+                .Select(urs => urs.FkUserId)
+                .ToList();
+
+            if (currentParticipantIds.Any())
+            {
+                var newStageStatuses = new List<UserOnboardingStageStatus>();
+                foreach (var stage in newStages)
+                {
+                    foreach (var userId in currentParticipantIds)
+                    {
+                        newStageStatuses.Add(new UserOnboardingStageStatus
+                        {
+                            FkUserId = userId,
+                            FkOnboardingStageId = stage.Id,
+                            Status = "Not Started"
+                        });
+                    }
+                }
+                _onboardingContext.UserOnboardingStageStatuses.AddRange(newStageStatuses);
+                await _onboardingContext.SaveChangesAsync();
+            }
+
+            return true;
         }
 
         // РЕДАКТИРОВАНИЕ
-        public async Task<bool> UpdateStageAsync(int stageId, StageDto request)
+        public async Task<bool> UpdateStageAsync(int stageId, UpdateStageRequest request)
         {
             var stage = await _onboardingContext.OnboardingStages.FindAsync(stageId);
             if (stage == null) return false;
 
-            stage.Title = request.Title;
-            stage.Description = request.Description;
-            stage.OrderIndex = request.Order;
+            // Обновляем только присланные поля
+            if (request.Title != null) stage.Title = request.Title;
+            if (request.Description != null) stage.Description = request.Description;
+            if (request.Order.HasValue) stage.OrderIndex = request.Order.Value;
 
             return await _onboardingContext.SaveChangesAsync() > 0;
         }

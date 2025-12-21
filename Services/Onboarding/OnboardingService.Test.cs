@@ -9,16 +9,16 @@ namespace backend_onboarding.Services.Onboarding
         public async Task<List<TestResponse>> GetTestsByCourseIdAsync(int courseId)
         {
             return await _onboardingContext.Tests
-                .Where(t => t.Fk1CourseId == courseId)
+                .Where(t => t.FkCourseId == courseId)
                 .Select(t => new TestResponse
                 {
                     Id = t.Id,
-                    CourseId = t.Fk1CourseId,
-                    AuthorId = t.Fk2User.Id,
+                    CourseId = t.FkCourseId,
+                    AuthorId = t.FkUserId,
                     Title = t.Title,
                     Description = t.Description,
                     PassingScore = t.PassingScore,
-                    ResultsScore = 0, // Заглушка: результат индивидуален для пользователя
+                    ResultsScore = 0,
                     Status = t.Status,
                     QuestionsCount = t.Questions.Count
                 }).ToListAsync();
@@ -31,21 +31,20 @@ namespace backend_onboarding.Services.Onboarding
                 .Select(t => new TestResponse
                 {
                     Id = t.Id,
-                    CourseId = t.Fk1CourseId,
-                    AuthorId = t.Fk2UserId,
+                    CourseId = t.FkCourseId,
+                    AuthorId = t.FkUserId,
                     Title = t.Title,
                     Description = t.Description,
                     PassingScore = t.PassingScore,
-                    ResultsScore = 0,
                     Status = t.Status,
                     QuestionsCount = t.Questions.Count,
 
                     Questions = t.Questions.Select(q => new QuestionResponse
                     {
                         Id = q.Id,
-                        TestId = q.Fk1TestId,
-                        QuestionTypeId = q.Fk2QuestionTypeId,
-                        TypeName = q.Fk2QuestionType.NameQuestionType,
+                        TestId = q.FkTestId,
+                        QuestionTypeId = q.FkQuestionTypeId,
+                        TypeName = q.FkQuestionType.NameQuestionType,
                         TextQuestion = q.TextQuestion,
 
                         Options = q.QuestionOptions
@@ -58,9 +57,7 @@ namespace backend_onboarding.Services.Onboarding
                                 OrderIndex = o.OrderIndex
                             }).ToList(),
 
-                        // ДОБАВЛЕНО: Получаем ответы именно этого пользователя на этот вопрос
                         UserAnswers = q.Answers
-                            .Where(a => a.Fk1UserId == userId)
                             .Select(a => new AnswerResponse
                             {
                                 Id = a.Id,
@@ -80,8 +77,8 @@ namespace backend_onboarding.Services.Onboarding
         {
             var test = new Test
             {
-                Fk1CourseId = request.CourseId,
-                Fk2UserId = request.AuthorId,
+                FkCourseId = request.CourseId ?? 0,
+                FkUserId = request.AuthorId ?? 0,
                 Title = request.Title,
                 Description = request.Description,
                 PassingScore = request.PassingScore,
@@ -99,11 +96,21 @@ namespace backend_onboarding.Services.Onboarding
             var test = await _onboardingContext.Tests.FindAsync(id);
             if (test == null) return false;
 
-            test.Title = request.Title;
-            test.Description = request.Description;
-            test.PassingScore = request.PassingScore;
-            test.Status = request.Status;
-            test.Fk1CourseId = request.CourseId;
+            // Обновляем только если значения переданы (не null)
+            if (!string.IsNullOrEmpty(request.Title))
+                test.Title = request.Title;
+
+            if (request.Description != null)
+                test.Description = request.Description;
+
+            if (request.PassingScore.HasValue)
+                test.PassingScore = request.PassingScore.Value;
+
+            if (!string.IsNullOrEmpty(request.Status))
+                test.Status = request.Status;
+
+            if (request.CourseId.HasValue)
+                test.FkCourseId = request.CourseId.Value;
 
             await _onboardingContext.SaveChangesAsync();
             return true;
@@ -117,8 +124,6 @@ namespace backend_onboarding.Services.Onboarding
 
             if (test == null) return false;
 
-            // Перед удалением теста нужно решить судьбу вопросов. 
-            // Если в БД настроено каскадное удаление — это произойдет само.
             _onboardingContext.Tests.Remove(test);
             return await _onboardingContext.SaveChangesAsync() > 0;
         }

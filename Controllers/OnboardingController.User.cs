@@ -1,5 +1,6 @@
 ﻿using backend_onboarding.Models.DTOs;
 using backend_onboarding.Services.Onboarding;
+using backend_onboarding.Services.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ namespace backend_onboarding.Controllers
     public partial class OnboardingController : ControllerBase
     {
         [HttpGet("users")]
-         [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = OnboardingRoles.SuperAdmin)]
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _onboardingService.GetAllUsersAsync();
@@ -16,7 +17,7 @@ namespace backend_onboarding.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        // [Authorize]
+        [Authorize(Roles = OnboardingRoles.SuperAdmin)]
         public async Task<IActionResult> GetUserInfo(int userId)
         {
             var response = await _onboardingService.GetUserOnboardingDataAsync(userId);
@@ -31,7 +32,7 @@ namespace backend_onboarding.Controllers
 
         // Обновление
         [HttpPut("user/{userId}")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = OnboardingRoles.SuperAdmin)]
         public async Task<IActionResult> UpdateUser(int userId, [FromBody] UpdateOnboardingUserRequest request)
         {
             // Вызываем метод из OnboardingService
@@ -47,7 +48,7 @@ namespace backend_onboarding.Controllers
 
         // Удаление
         [HttpDelete("user/{userId}")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = OnboardingRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteUser(int userId)
         {
             var success = await _onboardingService.DeleteOnboardingUserAsync(userId);

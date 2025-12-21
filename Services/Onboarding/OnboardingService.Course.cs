@@ -18,7 +18,7 @@ namespace backend_onboarding.Services.Onboarding
                     Description = c.Description,
                     OrderIndex = c.OrderIndex,
                     Status = c.Status,
-                    StageId = c.Fk2OnbordingStage,
+                    StageId = c.FkOnbordingStage,
                     Materials = c.Materials.Select(m => new MaterialResponse
                     {
                         Id = m.Id,
@@ -34,6 +34,34 @@ namespace backend_onboarding.Services.Onboarding
                 .FirstOrDefaultAsync();
         }
 
+        // ПОЛУЧЕНИЕ ВСЕХ КУРСОВ
+        public async Task<List<CourseFullResponse>> GetAllCoursesFullAsync()
+        {
+            return await _onboardingContext.Courses
+                .OrderBy(c => c.OrderIndex)
+                .Select(c => new CourseFullResponse
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Description = c.Description,
+                    OrderIndex = c.OrderIndex,
+                    Status = c.Status,
+                    StageId = c.FkOnbordingStage,
+                    Materials = c.Materials.Select(m => new MaterialResponse
+                    {
+                        Id = m.Id,
+                        UrlDocument = m.UrlDocument
+                    }).ToList(),
+                    Tests = c.Tests.Select(t => new TestShortResponse
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        PassingScore = t.PassingScore
+                    }).ToList()
+                })
+                .ToListAsync();
+        }
+
         // СОЗДАНИЕ КУРСА
         public async Task<int> CreateCourseAsync(CreateCourseRequest request)
         {
@@ -47,8 +75,7 @@ namespace backend_onboarding.Services.Onboarding
             {
                 Title = request.Title,
                 Description = request.Description,
-                Fk2OnbordingStage = request.StageId,
-                Fk1UserId = request.AuthorId,
+                FkOnbordingStage = request.StageId,
                 OrderIndex = request.OrderIndex,
                 Status = request.Status
             };
@@ -60,16 +87,16 @@ namespace backend_onboarding.Services.Onboarding
         }
 
         // РЕДАКТИРОВАНИЕ КУРСА
-        public async Task<bool> UpdateCourseAsync(int courseId, CreateCourseRequest request)
+        public async Task<bool> UpdateCourseAsync(int courseId, UpdateCourseRequest request)
         {
             var course = await _onboardingContext.Courses.FindAsync(courseId);
             if (course == null) return false;
 
-            course.Title = request.Title;
-            course.Description = request.Description;
-            course.OrderIndex = request.OrderIndex;
-            course.Status = request.Status;
-            course.Fk2OnbordingStage = request.StageId;
+            if (request.Title != null) course.Title = request.Title;
+            if (request.Description != null) course.Description = request.Description;
+            if (request.OrderIndex.HasValue) course.OrderIndex = request.OrderIndex.Value;
+            if (request.Status != null) course.Status = request.Status;
+            if (request.StageId.HasValue) course.FkOnbordingStage = request.StageId.Value;
 
             await _onboardingContext.SaveChangesAsync();
             return true;

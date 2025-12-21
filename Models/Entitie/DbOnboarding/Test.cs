@@ -7,9 +7,9 @@ public partial class Test
 {
     public int Id { get; set; }
 
-    public int? Fk1CourseId { get; set; }
+    public int FkCourseId { get; set; }
 
-    public int Fk2UserId { get; set; }
+    public int FkUserId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -21,9 +21,9 @@ public partial class Test
 
     public string Status { get; set; } = null!;
 
-    public virtual Course? Fk1Course { get; set; }
+    public virtual Course FkCourse { get; set; } = null!;
 
-    public virtual User Fk2User { get; set; } = null!;
+    public virtual User FkUser { get; set; } = null!;
 
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 }

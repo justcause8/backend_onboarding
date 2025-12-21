@@ -3,15 +3,17 @@ using System.Collections.Generic;
 
 namespace backend_onboarding.Models.Entitie.DbOnboarding;
 
-public partial class SystemAudit
+public partial class UserProgress
 {
     public int Id { get; set; }
 
     public int FkUserId { get; set; }
 
-    public string Action { get; set; } = null!;
+    public int FkCourseId { get; set; }
 
-    public DateTime TimeInterval { get; set; }
+    public string? Status { get; set; }
+
+    public virtual Course FkCourse { get; set; } = null!;
 
     public virtual User FkUser { get; set; } = null!;
 }

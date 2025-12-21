@@ -17,10 +17,10 @@
     public class CreateTestRequest
     {
         public int? CourseId { get; set; }
-        public int AuthorId { get; set; }
-        public string Title { get; set; } = null!;
+        public int? AuthorId { get; set; }
+        public string? Title { get; set; }
         public string? Description { get; set; }
         public decimal? PassingScore { get; set; }
-        public string Status { get; set; } = "Active";
+        public string? Status { get; set; }
     }
 }

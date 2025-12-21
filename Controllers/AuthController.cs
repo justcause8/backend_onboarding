@@ -25,33 +25,28 @@ namespace backend_onboarding.Controllers
             _environment = environment;
         }
 
-        // --- АУТЕНТИФИКАЦИЯ --
-
         [HttpGet("whoami")]
-        // Убираем [Authorize], чтобы метод срабатывал и для тех, у кого нет куки (попытка WinAuth)
+        [Authorize(AuthenticationSchemes = "Cookies,Negotiate")]
         public async Task<IActionResult> WhoAmI()
         {
-            // 1. СНАЧАЛА проверяем Куку (Cookie)
-            // Если пользователь уже залогинился (например, через login-as), то User.Identity.IsAuthenticated будет true
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (User.Identity != null &&
+                User.Identity.IsAuthenticated &&
+                User.Identity.AuthenticationType == CookieAuthenticationDefaults.AuthenticationScheme)
             {
-                // Достаем данные прямо из "кармана" (Claims), не обращаясь к базе данных
                 return Ok(new
                 {
                     Name = User.FindFirst("FullName")?.Value ?? User.Identity.Name,
                     Login = User.Identity.Name,
                     Role = User.FindFirst(ClaimTypes.Role)?.Value,
-                    Source = "Cookie" // Для отладки, чтобы видеть, откуда пришли данные
+                    Source = "Cookie"
                 });
             }
 
-            // 2. Если Куки нет, пробуем Windows Auth (твоя старая логика)
             var user = await _authService.AuthenticateAsync();
 
             if (user == null)
-                return Unauthorized(new { message = "Учётная запись не зарегистрирована в корпоративной системе (Windows Auth failed)" });
+                return Unauthorized(new { message = "Пользователь не найден в БД Onboarding/RIMS" });
 
-            // Если Windows Auth прошла успешно, создаем куку (как мы делали раньше)
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Login),
@@ -61,16 +56,11 @@ namespace backend_onboarding.Controllers
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTime.UtcNow.AddHours(8)
-            };
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
-                authProperties);
+                new AuthenticationProperties { IsPersistent = true });
 
             return Ok(new
             {
@@ -117,7 +107,6 @@ namespace backend_onboarding.Controllers
             return Ok(new { user.Name, user.Login, user.Role, message = $"Успешный вход как {login}" });
         }
 
-        // Опционально: Метод выхода
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {

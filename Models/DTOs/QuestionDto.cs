@@ -23,7 +23,7 @@
     {
         public int TestId { get; set; }
         public int QuestionTypeId { get; set; } // 1 - open, 2 - close, 3 - multiple
-        public string TextQuestion { get; set; } = null!;
-        public List<QuestionOptionDto> Options { get; set; } = new();
+        public string? TextQuestion { get; set; } = null!;
+        public List<QuestionOptionDto>? Options { get; set; } = new();
     }
 }

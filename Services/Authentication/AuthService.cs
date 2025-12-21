@@ -1,9 +1,10 @@
 ﻿using backend_onboarding.Models.DTOs;
-using Microsoft.EntityFrameworkCore;
-using RimsUser = backend_onboarding.Models.Entitie.DbOnboardingRIMS.User;
-using OnboardingUser = backend_onboarding.Models.Entitie.DbOnboarding.User;
 using backend_onboarding.Models.Entitie.DbOnboarding;
 using backend_onboarding.Models.Entitie.DbOnboardingRIMS;
+using Microsoft.EntityFrameworkCore;
+using static System.Net.WebRequestMethods;
+using OnboardingUser = backend_onboarding.Models.Entitie.DbOnboarding.User;
+using RimsUser = backend_onboarding.Models.Entitie.DbOnboardingRIMS.User;
 
 namespace backend_onboarding.Services.Authentication
 {
@@ -11,11 +12,13 @@ namespace backend_onboarding.Services.Authentication
     {
         private readonly OnboardingRimsContext _rimsContext;
         private readonly OnboardingContext _onboardingContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AuthService(OnboardingRimsContext rimsContext, OnboardingContext onboardingContext)
+        public AuthService(OnboardingRimsContext rimsContext, OnboardingContext onboardingContext, IHttpContextAccessor httpContextAccessor)
         {
             _rimsContext = rimsContext;
             _onboardingContext = onboardingContext;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<UserAuthRequest?> AuthenticateAsync()
@@ -100,7 +103,6 @@ namespace backend_onboarding.Services.Authentication
                 }
             }
 
-            // 4. Возвращаем DTO
             return new UserAuthRequest
             {
                 Id = onboardingUser.Id,
@@ -112,11 +114,17 @@ namespace backend_onboarding.Services.Authentication
 
         private string GetLogin()
         {
-            // Восстанавливаем оригинальную логику Windows Auth
-            string login = Environment.UserName;
-            // Если есть DOMAIN\login, берём короткий логин
-            if (login.Contains("\\")) login = login.Split('\\')[1];
-            return login;
+            // 1. Получаем имя пользователя из HTTP Контекста (его туда передает IIS/Kestrel)
+            // Оно обычно в формате "DOMAIN\user" или "COMPUTER\user"
+            var user = _httpContextAccessor.HttpContext?.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(user))
+            {
+                return "unknown";
+            }
+
+            // 2. Отрезаем домен. Если пришло "LAPTOP-GSKRT9JQ\dmzve", останется "dmzve"
+            return user.Contains("\\") ? user.Split('\\')[1] : user;
         }
     }
 }

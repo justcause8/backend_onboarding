@@ -9,13 +9,13 @@ namespace backend_onboarding.Services.Onboarding
         public async Task<List<QuestionResponse>> GetQuestionsByTestIdAsync(int testId)
         {
             return await _onboardingContext.Questions
-                .Where(q => q.Fk1TestId == testId)
+                .Where(q => q.FkTestId == testId)
                 .Select(q => new QuestionResponse
                 {
                     Id = q.Id,
-                    TestId = q.Fk1TestId,
-                    QuestionTypeId = q.Fk2QuestionTypeId,
-                    TypeName = q.Fk2QuestionType.NameQuestionType,
+                    TestId = q.FkTestId,
+                    QuestionTypeId = q.FkQuestionTypeId,
+                    TypeName = q.FkQuestionType.NameQuestionType,
                     TextQuestion = q.TextQuestion,
                     Options = q.QuestionOptions.OrderBy(o => o.OrderIndex).Select(o => new QuestionOptionDto
                     {
@@ -31,8 +31,8 @@ namespace backend_onboarding.Services.Onboarding
         {
             var question = new Question
             {
-                Fk1TestId = request.TestId,
-                Fk2QuestionTypeId = request.QuestionTypeId,
+                FkTestId = request.TestId,
+                FkQuestionTypeId = request.QuestionTypeId,
                 TextQuestion = request.TextQuestion,
                 QuestionOptions = request.Options.Select(o => new QuestionOption
                 {
@@ -55,19 +55,38 @@ namespace backend_onboarding.Services.Onboarding
 
             if (question == null) return false;
 
-            // Обновляем основные поля
-            question.TextQuestion = request.TextQuestion;
-            question.Fk2QuestionTypeId = request.QuestionTypeId;
+            // 1. Обновляем текст вопроса, если он передан
+            if (!string.IsNullOrEmpty(request.TextQuestion))
+                question.TextQuestion = request.TextQuestion;
 
-            // Простой способ обновления опций: удаляем старые, добавляем новые
-            _onboardingContext.QuestionOptions.RemoveRange(question.QuestionOptions);
-
-            question.QuestionOptions = request.Options.Select(o => new QuestionOption
+            // 2. Обновляем тип вопроса, если передан корректный ID (> 0)
+            if (request.QuestionTypeId > 0)
             {
-                Text = o.Text,
-                CorrectAnswer = o.CorrectAnswer,
-                OrderIndex = o.OrderIndex
-            }).ToList();
+                // Проверка существования типа, чтобы избежать ошибки FK, которую мы видели ранее
+                var typeExists = await _onboardingContext.QuestionTypes.AnyAsync(qt => qt.Id == request.QuestionTypeId);
+                if (typeExists)
+                    question.FkQuestionTypeId = request.QuestionTypeId;
+            }
+
+            // 3. Обновляем связь с тестом (если нужно перенести вопрос в другой тест)
+            if (request.TestId > 0)
+                question.FkTestId = request.TestId;
+
+            // 4. Обновляем опции (только если список передан в запросе)
+            // Проверяем на null, чтобы не удалить старые данные при частичном обновлении
+            if (request.Options != null && request.Options.Any())
+            {
+                // Удаляем старые
+                _onboardingContext.QuestionOptions.RemoveRange(question.QuestionOptions);
+
+                // Добавляем новые
+                question.QuestionOptions = request.Options.Select(o => new QuestionOption
+                {
+                    Text = o.Text,
+                    CorrectAnswer = o.CorrectAnswer,
+                    OrderIndex = o.OrderIndex
+                }).ToList();
+            }
 
             await _onboardingContext.SaveChangesAsync();
             return true;

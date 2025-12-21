@@ -1,4 +1,6 @@
 ﻿using backend_onboarding.Models.DTOs;
+using backend_onboarding.Services.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend_onboarding.Controllers
@@ -7,6 +9,7 @@ namespace backend_onboarding.Controllers
     {
         // Получить все материалы конкретного курса
         [HttpGet("course/{courseId}/materials")]
+        [Authorize]
         public async Task<IActionResult> GetMaterialsByCourse(int courseId)
         {
             var materials = await _onboardingService.GetMaterialsByCourseIdAsync(courseId);
@@ -15,6 +18,7 @@ namespace backend_onboarding.Controllers
 
         // Получить один материал по ID
         [HttpGet("material/{id}")]
+        [Authorize]
         public async Task<IActionResult> GetMaterial(int id)
         {
             var material = await _onboardingService.GetMaterialByIdAsync(id);
@@ -24,6 +28,7 @@ namespace backend_onboarding.Controllers
 
         // Создать материал
         [HttpPost("material")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> CreateMaterial([FromBody] CreateMaterialRequest request)
         {
             try
@@ -39,6 +44,7 @@ namespace backend_onboarding.Controllers
 
         // Редактировать материал
         [HttpPut("material/{id}")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> UpdateMaterial(int id, [FromBody] UpdateMaterialRequest request)
         {
             var success = await _onboardingService.UpdateMaterialAsync(id, request);
@@ -48,6 +54,7 @@ namespace backend_onboarding.Controllers
 
         // Удалить материал
         [HttpDelete("material/{id}")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
         public async Task<IActionResult> DeleteMaterial(int id)
         {
             var success = await _onboardingService.DeleteMaterialAsync(id);

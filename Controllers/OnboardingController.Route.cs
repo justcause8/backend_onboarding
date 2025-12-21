@@ -1,28 +1,32 @@
 ﻿using backend_onboarding.Models.DTOs;
+using backend_onboarding.Services.Authentication;
 using backend_onboarding.Services.Onboarding;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend_onboarding.Controllers
 {
-    public partial class OnboardingController : ControllerBase
+    public partial class OnboardingController
     {
         [HttpGet("route/{id}")]
+        [Authorize]
         public async Task<IActionResult> GetRouteById(int id)
         {
             var route = await _onboardingService.GetOnboardingRouteByIdAsync(id);
-
-            if (route == null)
-            {
-                return NotFound(new { message = $"Маршрут с ID {id} не найден" });
-            }
-
+            if (route == null) return NotFound(new { message = $"Маршрут с ID {id} не найден" });
             return Ok(route);
         }
 
         [HttpPost("route/create")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin)]
         public async Task<IActionResult> CreateRoute([FromBody] CreateOnboardingRouteRequest request)
         {
-            if (request == null) return BadRequest("Данные не заполнены");
+            var accessError = EnsureHrAdmin();
+            if (accessError != null) return accessError;
+
+            if (request == null) return BadRequest(new { message = "Данные запроса пусты" });
+
+            request.MentorId ??= CurrentUserId;
 
             try
             {
@@ -31,26 +35,37 @@ namespace backend_onboarding.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Ошибка при создании маршрута: {ex.Message}");
+                return StatusCode(500, $"Ошибка при создании: {ex.Message}");
             }
         }
 
         [HttpPut("route/{id}")]
-        public async Task<IActionResult> UpdateRoute(int id, [FromBody] CreateOnboardingRouteRequest request)
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
+        public async Task<IActionResult> UpdateRoute(int id, [FromBody] UpdateOnboardingRouteRequest request)
         {
-            var result = await _onboardingService.UpdateOnboardingRouteAsync(id, request);
-            if (!result) return NotFound("Маршрут не найден");
+            var route = await _onboardingService.GetOnboardingRouteByIdAsync(id);
+            if (route == null) return NotFound("Маршрут не найден");
 
-            return Ok(new { Message = "Маршрут обновлен" });
+            if (IsMentor && !IsHr && route.Mentor?.Id != CurrentUserId)
+            {
+                return Forbidden("Вы можете редактировать только свои маршруты.");
+            }
+
+            request.MentorId ??= route.Mentor?.Id;
+
+            var result = await _onboardingService.UpdateOnboardingRouteAsync(id, request);
+            return result ? Ok(new { Message = "Маршрут обновлен" }) : BadRequest(new { message = "Ошибка в БД" });
         }
 
         [HttpDelete("route/{id}")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin)]
         public async Task<IActionResult> DeleteRoute(int id)
         {
-            var result = await _onboardingService.DeleteOnboardingRouteAsync(id);
-            if (!result) return NotFound("Маршрут не найден");
+            var accessError = EnsureHrAdmin();
+            if (accessError != null) return accessError;
 
-            return Ok(new { Message = "Маршрут удален" });
+            var result = await _onboardingService.DeleteOnboardingRouteAsync(id);
+            return result ? Ok(new { Message = "Маршрут удален" }) : NotFound("Маршрут не найден");
         }
     }
 }

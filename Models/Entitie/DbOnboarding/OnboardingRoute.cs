@@ -7,7 +7,7 @@ public partial class OnboardingRoute
 {
     public int Id { get; set; }
 
-    public int? FkmentorId { get; set; }
+    public int? FkUserId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -15,7 +15,7 @@ public partial class OnboardingRoute
 
     public string Status { get; set; } = null!;
 
-    public virtual User? Fkmentor { get; set; }
+    public virtual User? FkUser { get; set; }
 
     public virtual ICollection<OnboardingStage> OnboardingStages { get; set; } = new List<OnboardingStage>();
 

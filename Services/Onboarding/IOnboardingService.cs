@@ -12,21 +12,22 @@ namespace backend_onboarding.Services.Onboarding
         // ROUTE
         Task<OnboardingRouteResponse?> GetOnboardingRouteByIdAsync(int routeId);
         Task<int> CreateOnboardingRouteAsync(CreateOnboardingRouteRequest request);
-        Task<bool> UpdateOnboardingRouteAsync(int routeId, CreateOnboardingRouteRequest request);
+        Task<bool> UpdateOnboardingRouteAsync(int routeId, UpdateOnboardingRouteRequest request);
         Task<bool> DeleteOnboardingRouteAsync(int routeId);
         Task<bool> AssignUserToRouteAsync(int userId, int routeId);
 
         // STAGE
         Task<StageResponse?> GetStageByIdAsync(int stageId);
         Task<bool> AddStagesToRouteAsync(AddStagesToRouteRequest request);
-        Task<bool> UpdateStageAsync(int stageId, StageDto request);
+        Task<bool> UpdateStageAsync(int stageId, UpdateStageRequest request);
         Task<bool> DeleteStageAsync(int stageId);
         Task<bool> AssignUserToStageAsync(int userId, int stageId);
 
         // COURSE
         Task<CourseFullResponse?> GetCourseByIdAsync(int courseId);
+        Task<List<CourseFullResponse>> GetAllCoursesFullAsync();
         Task<int> CreateCourseAsync(CreateCourseRequest request);
-        Task<bool> UpdateCourseAsync(int courseId, CreateCourseRequest request);
+        Task<bool> UpdateCourseAsync(int courseId, UpdateCourseRequest request);
         Task<bool> DeleteCourseAsync(int courseId);
 
         // MATERIALS
@@ -51,8 +52,8 @@ namespace backend_onboarding.Services.Onboarding
 
         //ANSWER
         Task<int> SubmitAnswerAsync(UserAnswerRequest request);
-        Task<bool> UpdateAnswerAsync(int answerId, UserAnswerRequest request);
-        Task<bool> DeleteAnswerAsync(int answerId);
+        Task<bool> UpdateAnswerAsync(int answerId, UserAnswerRequest request, int userId);
+        Task<bool> DeleteAnswerAsync(int answerId, int userId);
         Task<List<AnswerResponse>> GetUserAnswersByTestAsync(int userId, int testId);
 
     }

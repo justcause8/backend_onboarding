@@ -7,7 +7,7 @@ public partial class OnboardingStage
 {
     public int Id { get; set; }
 
-    public int? Fk1OnbordingRouteId { get; set; }
+    public int? FkOnbordingRouteId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -17,7 +17,7 @@ public partial class OnboardingStage
 
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
-    public virtual OnboardingRoute? Fk1OnbordingRoute { get; set; }
+    public virtual OnboardingRoute? FkOnbordingRoute { get; set; }
 
     public virtual ICollection<UserOnboardingStageStatus> UserOnboardingStageStatuses { get; set; } = new List<UserOnboardingStageStatus>();
 }

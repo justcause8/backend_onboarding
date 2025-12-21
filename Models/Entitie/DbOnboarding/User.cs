@@ -23,8 +23,6 @@ public partial class User
 
     public virtual ICollection<Answer> Answers { get; set; } = new List<Answer>();
 
-    public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
-
     public virtual ICollection<OnboardingRoute> OnboardingRoutes { get; set; } = new List<OnboardingRoute>();
 
     public virtual ICollection<SystemAudit> SystemAudits { get; set; } = new List<SystemAudit>();
@@ -34,4 +32,6 @@ public partial class User
     public virtual ICollection<UserOnboardingRouteStatus> UserOnboardingRouteStatuses { get; set; } = new List<UserOnboardingRouteStatus>();
 
     public virtual ICollection<UserOnboardingStageStatus> UserOnboardingStageStatuses { get; set; } = new List<UserOnboardingStageStatus>();
+
+    public virtual ICollection<UserProgress> UserProgresses { get; set; } = new List<UserProgress>();
 }

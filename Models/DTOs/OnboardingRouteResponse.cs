@@ -12,7 +12,7 @@
         public int Id { get; set; }
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
-        public int? MentorId { get; set; }
+        public UserShortResponse? Mentor { get; set; }
         public List<StageResponse> Stages { get; set; } = new List<StageResponse>();
 
         public List<UserShortResponse> AssignedEmployees { get; set; } = new();

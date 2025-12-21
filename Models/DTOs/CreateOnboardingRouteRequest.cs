@@ -4,7 +4,15 @@
     {
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
-        public int? MentorId { get; set; }
+        public int? MentorId { get; set; } = null!;
         public List<int> UserIds { get; set; } = new List<int>();
+    }
+    
+    public class UpdateOnboardingRouteRequest
+    {
+        public string? Title { get; set; } = null!;
+        public string? Description { get; set; } = null!;
+        public int? MentorId { get; set; } = null!;
+        public List<int>? UserIds { get; set; } = new List<int>();
     }
 }

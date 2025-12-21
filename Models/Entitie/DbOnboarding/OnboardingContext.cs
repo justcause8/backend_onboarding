@@ -43,19 +43,20 @@ public partial class OnboardingContext : DbContext
 
     public virtual DbSet<UserOnboardingStageStatus> UserOnboardingStageStatuses { get; set; }
 
+    public virtual DbSet<UserProgress> UserProgresses { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Onboarding;Trusted_Connection=True;TrustServerCertificate=true;");
+        => optionsBuilder.UseSqlServer("Name=OnboardingConnection");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Answer>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Answer__3213E83F4C9CF4BA");
+            entity.HasKey(e => e.Id).HasName("PK__Answer__3213E83F53FC2B61");
 
             entity.ToTable("Answer");
 
-            entity.HasIndex(e => e.Id, "UQ__Answer__3213E83E8709298A").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Answer__3213E83EEF94F9B7").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AnswerText)
@@ -68,21 +69,21 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.Fk1User).WithMany(p => p.Answers)
                 .HasForeignKey(d => d.Fk1UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Answer__FK1_user__4F7CD00D");
+                .HasConstraintName("FK__Answer__FK1_user__5441852A");
 
             entity.HasOne(d => d.Fk2Question).WithMany(p => p.Answers)
                 .HasForeignKey(d => d.Fk2QuestionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Answer__FK2_ques__571DF1D5");
+                .HasConstraintName("FK__Answer__FK2_ques__59063A47");
         });
 
         modelBuilder.Entity<AnswerOption>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__AnswerOp__3213E83F3C851CCD");
+            entity.HasKey(e => e.Id).HasName("PK__AnswerOp__3213E83F179B8832");
 
             entity.ToTable("AnswerOption");
 
-            entity.HasIndex(e => e.Id, "UQ__AnswerOp__3213E83EEA3855D3").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__AnswerOp__3213E83E55CD946B").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FkAnswerId).HasColumnName("FK_answer_id");
@@ -91,23 +92,22 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.FkAnswer).WithMany(p => p.AnswerOptions)
                 .HasForeignKey(d => d.FkAnswerId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__AnswerOpt__FK_an__5070F446");
+                .HasConstraintName("FK__AnswerOpt__FK_an__5535A963");
         });
 
         modelBuilder.Entity<Course>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Course__3213E83FD93EE78F");
+            entity.HasKey(e => e.Id).HasName("PK__Course__3213E83F9D3C4BEA");
 
             entity.ToTable("Course");
 
-            entity.HasIndex(e => e.Id, "UQ__Course__3213E83EF878957E").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Course__3213E83E538825E6").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description)
                 .HasMaxLength(4000)
                 .HasColumnName("description");
-            entity.Property(e => e.Fk1UserId).HasColumnName("FK1_user_id");
-            entity.Property(e => e.Fk2OnbordingStage).HasColumnName("FK2_onbording_stage");
+            entity.Property(e => e.FkOnbordingStage).HasColumnName("FK_onbording_stage");
             entity.Property(e => e.OrderIndex).HasColumnName("order_index");
             entity.Property(e => e.Status)
                 .HasMaxLength(255)
@@ -116,20 +116,16 @@ public partial class OnboardingContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Fk1User).WithMany(p => p.Courses)
-                .HasForeignKey(d => d.Fk1UserId)
-                .HasConstraintName("FK__Course__FK1_user__5165187F");
-
-            entity.HasOne(d => d.Fk2OnbordingStageNavigation).WithMany(p => p.Courses)
-                .HasForeignKey(d => d.Fk2OnbordingStage)
-                .HasConstraintName("FK__Course__FK2_onbo__52593CB8");
+            entity.HasOne(d => d.FkOnbordingStageNavigation).WithMany(p => p.Courses)
+                .HasForeignKey(d => d.FkOnbordingStage)
+                .HasConstraintName("FK__Course__FK_onbor__4F7CD00D");
         });
 
         modelBuilder.Entity<Material>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Material__3213E83F856B31D6");
+            entity.HasKey(e => e.Id).HasName("PK__Material__3213E83F38951C91");
 
-            entity.HasIndex(e => e.Id, "UQ__Material__3213E83E0DFCF45C").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Material__3213E83EF6F831B5").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FkCourseId).HasColumnName("FK_course_id");
@@ -140,22 +136,22 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.FkCourse).WithMany(p => p.Materials)
                 .HasForeignKey(d => d.FkCourseId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Materials__FK_co__534D60F1");
+                .HasConstraintName("FK__Materials__FK_co__4E88ABD4");
         });
 
         modelBuilder.Entity<OnboardingRoute>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Onboardi__3213E83F5650B787");
+            entity.HasKey(e => e.Id).HasName("PK__Onboardi__3213E83FCFA73BD6");
 
             entity.ToTable("OnboardingRoute");
 
-            entity.HasIndex(e => e.Id, "UQ__Onboardi__3213E83E269133A9").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Onboardi__3213E83EAB2520CA").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .HasColumnName("description");
-            entity.Property(e => e.FkmentorId).HasColumnName("FKMentorId");
+            entity.Property(e => e.FkUserId).HasColumnName("FK_user_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(255)
                 .HasColumnName("status");
@@ -163,67 +159,67 @@ public partial class OnboardingContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Fkmentor).WithMany(p => p.OnboardingRoutes)
-                .HasForeignKey(d => d.FkmentorId)
-                .HasConstraintName("FK__Onboardin__FKMen__5BE2A6F2");
+            entity.HasOne(d => d.FkUser).WithMany(p => p.OnboardingRoutes)
+                .HasForeignKey(d => d.FkUserId)
+                .HasConstraintName("FK__Onboardin__FK_us__5DCAEF64");
         });
 
         modelBuilder.Entity<OnboardingStage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Onboardi__3213E83F7E42CF58");
+            entity.HasKey(e => e.Id).HasName("PK__Onboardi__3213E83FC25D62D4");
 
             entity.ToTable("OnboardingStage");
 
-            entity.HasIndex(e => e.Id, "UQ__Onboardi__3213E83EAD5F774E").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Onboardi__3213E83EE4366BBB").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .HasColumnName("description");
-            entity.Property(e => e.Fk1OnbordingRouteId).HasColumnName("FK1_onbording_route_id");
+            entity.Property(e => e.FkOnbordingRouteId).HasColumnName("FK_onbording_route_id");
             entity.Property(e => e.OrderIndex).HasColumnName("order_index");
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Fk1OnbordingRoute).WithMany(p => p.OnboardingStages)
-                .HasForeignKey(d => d.Fk1OnbordingRouteId)
-                .HasConstraintName("FK__Onboardin__FK1_o__4E88ABD4");
+            entity.HasOne(d => d.FkOnbordingRoute).WithMany(p => p.OnboardingStages)
+                .HasForeignKey(d => d.FkOnbordingRouteId)
+                .HasConstraintName("FK__Onboardin__FK_on__534D60F1");
         });
 
         modelBuilder.Entity<Question>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83F38EC08BD");
+            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83FF83BCA78");
 
             entity.ToTable("Question");
 
-            entity.HasIndex(e => e.Id, "UQ__Question__3213E83E85627E1D").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Question__3213E83EBE161D98").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Fk1TestId).HasColumnName("FK1_test_id");
-            entity.Property(e => e.Fk2QuestionTypeId).HasColumnName("FK2_question_type_id");
+            entity.Property(e => e.FkQuestionTypeId).HasColumnName("FK_question_type_id");
+            entity.Property(e => e.FkTestId).HasColumnName("FK_test_id");
             entity.Property(e => e.TextQuestion)
                 .HasMaxLength(255)
                 .HasColumnName("text_question");
 
-            entity.HasOne(d => d.Fk1Test).WithMany(p => p.Questions)
-                .HasForeignKey(d => d.Fk1TestId)
+            entity.HasOne(d => d.FkQuestionType).WithMany(p => p.Questions)
+                .HasForeignKey(d => d.FkQuestionTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Question__FK1_te__5441852A");
+                .HasConstraintName("FK__Question__FK_que__571DF1D5");
 
-            entity.HasOne(d => d.Fk2QuestionType).WithMany(p => p.Questions)
-                .HasForeignKey(d => d.Fk2QuestionTypeId)
+            entity.HasOne(d => d.FkTest).WithMany(p => p.Questions)
+                .HasForeignKey(d => d.FkTestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Question__FK2_qu__5535A963");
+                .HasConstraintName("FK__Question__FK_tes__5629CD9C");
         });
 
         modelBuilder.Entity<QuestionOption>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83FFD19C1A3");
+            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83FE8657653");
 
             entity.ToTable("QuestionOption");
 
-            entity.HasIndex(e => e.Id, "UQ__Question__3213E83E39DC8B90").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Question__3213E83E10B61D7A").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CorrectAnswer).HasColumnName("correct_answer");
@@ -236,16 +232,16 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.FkQuestion).WithMany(p => p.QuestionOptions)
                 .HasForeignKey(d => d.FkQuestionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__QuestionO__FK_qu__5629CD9C");
+                .HasConstraintName("FK__QuestionO__FK_qu__5812160E");
         });
 
         modelBuilder.Entity<QuestionType>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83F91D90170");
+            entity.HasKey(e => e.Id).HasName("PK__Question__3213E83FB21100C6");
 
             entity.ToTable("QuestionType");
 
-            entity.HasIndex(e => e.Id, "UQ__Question__3213E83ECBF75F71").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Question__3213E83E6AEB396F").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.NameQuestionType)
@@ -255,11 +251,11 @@ public partial class OnboardingContext : DbContext
 
         modelBuilder.Entity<SystemAudit>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__SystemAu__3213E83FED5351D5");
+            entity.HasKey(e => e.Id).HasName("PK__SystemAu__3213E83F2021685D");
 
             entity.ToTable("SystemAudit");
 
-            entity.HasIndex(e => e.Id, "UQ__SystemAu__3213E83E1840AE4A").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__SystemAu__3213E83E6AFB03E3").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Action)
@@ -270,23 +266,24 @@ public partial class OnboardingContext : DbContext
 
             entity.HasOne(d => d.FkUser).WithMany(p => p.SystemAudits)
                 .HasForeignKey(d => d.FkUserId)
-                .HasConstraintName("FK__SystemAud__FK_us__4D94879B");
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__SystemAud__FK_us__52593CB8");
         });
 
         modelBuilder.Entity<Test>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Test__3213E83FB11E317E");
+            entity.HasKey(e => e.Id).HasName("PK__Test__3213E83F876C692E");
 
             entity.ToTable("Test");
 
-            entity.HasIndex(e => e.Id, "UQ__Test__3213E83E56E5FEC6").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__Test__3213E83E9DCF0291").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .HasColumnName("description");
-            entity.Property(e => e.Fk1CourseId).HasColumnName("FK1_course_id");
-            entity.Property(e => e.Fk2UserId).HasColumnName("FK2_user_id");
+            entity.Property(e => e.FkCourseId).HasColumnName("FK_course_id");
+            entity.Property(e => e.FkUserId).HasColumnName("FK_user_id");
             entity.Property(e => e.PassingScore)
                 .HasColumnType("decimal(5, 2)")
                 .HasColumnName("passing_score");
@@ -300,23 +297,24 @@ public partial class OnboardingContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Fk1Course).WithMany(p => p.Tests)
-                .HasForeignKey(d => d.Fk1CourseId)
-                .HasConstraintName("FK__Test__FK1_course__4CA06362");
-
-            entity.HasOne(d => d.Fk2User).WithMany(p => p.Tests)
-                .HasForeignKey(d => d.Fk2UserId)
+            entity.HasOne(d => d.FkCourse).WithMany(p => p.Tests)
+                .HasForeignKey(d => d.FkCourseId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Test__FK2_user_i__4BAC3F29");
+                .HasConstraintName("FK__Test__FK_course___5070F446");
+
+            entity.HasOne(d => d.FkUser).WithMany(p => p.Tests)
+                .HasForeignKey(d => d.FkUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Test__FK_user_id__5165187F");
         });
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__User__3213E83F958B2878");
+            entity.HasKey(e => e.Id).HasName("PK__User__3213E83F205F7DF4");
 
             entity.ToTable("User");
 
-            entity.HasIndex(e => e.Uid, "UQ__User__DD701265FCE90D60").IsUnique();
+            entity.HasIndex(e => e.Uid, "UQ__User__DD701265CF7949A3").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Department)
@@ -342,11 +340,11 @@ public partial class OnboardingContext : DbContext
 
         modelBuilder.Entity<UserOnboardingRouteStatus>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__UserOnbo__3213E83F4B8EA645");
+            entity.HasKey(e => e.Id).HasName("PK__UserOnbo__3213E83F18CE3741");
 
             entity.ToTable("UserOnboardingRouteStatus");
 
-            entity.HasIndex(e => e.Id, "UQ__UserOnbo__3213E83EC99EF78C").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__UserOnbo__3213E83E60D4B7BA").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FactEndDate).HasColumnName("fact_end_date");
@@ -360,21 +358,21 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.FkOnboardingRoute).WithMany(p => p.UserOnboardingRouteStatuses)
                 .HasForeignKey(d => d.FkOnboardingRouteId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__UserOnboa__FK_on__59FA5E80");
+                .HasConstraintName("FK__UserOnboa__FK_on__5BE2A6F2");
 
             entity.HasOne(d => d.FkUser).WithMany(p => p.UserOnboardingRouteStatuses)
                 .HasForeignKey(d => d.FkUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__UserOnboa__FK_us__59063A47");
+                .HasConstraintName("FK__UserOnboa__FK_us__5AEE82B9");
         });
 
         modelBuilder.Entity<UserOnboardingStageStatus>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__UserOnbo__3213E83F3F974232");
+            entity.HasKey(e => e.Id).HasName("PK__UserOnbo__3213E83F6A9C7602");
 
             entity.ToTable("UserOnboardingStageStatus");
 
-            entity.HasIndex(e => e.Id, "UQ__UserOnbo__3213E83EFF6EF427").IsUnique();
+            entity.HasIndex(e => e.Id, "UQ__UserOnbo__3213E83E49844A6F").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FactEndDate).HasColumnName("fact_end_date");
@@ -388,12 +386,38 @@ public partial class OnboardingContext : DbContext
             entity.HasOne(d => d.FkOnboardingStage).WithMany(p => p.UserOnboardingStageStatuses)
                 .HasForeignKey(d => d.FkOnboardingStageId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__UserOnboa__FK_on__5AEE82B9");
+                .HasConstraintName("FK__UserOnboa__FK_on__5CD6CB2B");
 
             entity.HasOne(d => d.FkUser).WithMany(p => p.UserOnboardingStageStatuses)
                 .HasForeignKey(d => d.FkUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__UserOnboa__FK_us__5812160E");
+                .HasConstraintName("FK__UserOnboa__FK_us__59FA5E80");
+        });
+
+        modelBuilder.Entity<UserProgress>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__UserProg__3213E83FECA43AE4");
+
+            entity.ToTable("UserProgress");
+
+            entity.HasIndex(e => e.Id, "UQ__UserProg__3213E83E4C2F2729").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FkCourseId).HasColumnName("FK_course_id");
+            entity.Property(e => e.FkUserId).HasColumnName("FK_user_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(255)
+                .HasColumnName("status");
+
+            entity.HasOne(d => d.FkCourse).WithMany(p => p.UserProgresses)
+                .HasForeignKey(d => d.FkCourseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__UserProgr__FK_co__5FB337D6");
+
+            entity.HasOne(d => d.FkUser).WithMany(p => p.UserProgresses)
+                .HasForeignKey(d => d.FkUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__UserProgr__FK_us__5EBF139D");
         });
 
         OnModelCreatingPartial(modelBuilder);
