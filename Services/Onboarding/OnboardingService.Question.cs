@@ -94,10 +94,40 @@ namespace backend_onboarding.Services.Onboarding
 
         public async Task<bool> DeleteQuestionAsync(int questionId)
         {
-            var question = await _onboardingContext.Questions.FindAsync(questionId);
+            // 1. Загружаем вопрос со всеми зависимостями
+            var question = await _onboardingContext.Questions
+                .Include(q => q.QuestionOptions) // Варианты ответов
+                .Include(q => q.Answers)         // Ответы пользователей (если есть)
+                .FirstOrDefaultAsync(q => q.Id == questionId);
+
             if (question == null) return false;
 
+            // 2. Удаляем связанные сущности
+            if (question.QuestionOptions != null && question.QuestionOptions.Any())
+            {
+                _onboardingContext.QuestionOptions.RemoveRange(question.QuestionOptions);
+            }
+
+            if (question.Answers != null && question.Answers.Any())
+            {
+                // Также нужно удалить AnswerOption, связанные с каждым Answer
+                var answerIds = question.Answers.Select(a => a.Id).ToList();
+                var answerOptions = await _onboardingContext.AnswerOptions
+                    .Where(ao => answerIds.Contains(ao.FkAnswerId))
+                    .ToListAsync();
+
+                if (answerOptions.Any())
+                {
+                    _onboardingContext.AnswerOptions.RemoveRange(answerOptions);
+                }
+
+                _onboardingContext.Answers.RemoveRange(question.Answers);
+            }
+
+            // 3. Удаляем сам вопрос
             _onboardingContext.Questions.Remove(question);
+
+            // 4. Сохраняем
             return await _onboardingContext.SaveChangesAsync() > 0;
         }
     }

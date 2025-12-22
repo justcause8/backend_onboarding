@@ -1,6 +1,7 @@
 ﻿using backend_onboarding.Models.DTOs;
 using backend_onboarding.Models.Entitie.DbOnboarding;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace backend_onboarding.Services.Onboarding
 {
@@ -125,6 +126,249 @@ namespace backend_onboarding.Services.Onboarding
 
             await _onboardingContext.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<UserProgressResponse> GetUserCourseProgressAsync(int userId)
+        {
+            var routeId = await GetUserRouteIdAsync(userId);
+            if (routeId == null)
+                return EmptyProgress();
+
+            var stages = await GetStagesForRouteAsync(routeId.Value);
+            if (!stages.Any())
+                return EmptyProgress();
+
+            var allCourses = await GetCoursesForStagesAsync(stages);
+            var completedCourseIds = await GetCompletedCourseIdsAsync(userId, allCourses);
+
+            var completedCourses = completedCourseIds.Count;
+            var totalCourses = allCourses.Count;
+            var completedStages = CountCompletedStages(stages, allCourses, completedCourseIds);
+            var totalStages = stages.Count;
+
+            var stageProgress = new List<StageProgressItem>();
+
+            // Получим ID всех вопросов по курсам пользователя — чтобы определить, "начаты" ли курсы
+            var allQuestionIds = allCourses
+                .SelectMany(c => c.Tests.SelectMany(t => t.Questions.Select(q => q.Id)))
+                .ToList();
+
+            var answeredQuestionIds = new HashSet<int>();
+            if (allQuestionIds.Any())
+            {
+                var userAnswers = await _onboardingContext.Answers
+                    .Where(a => a.Fk1UserId == userId && allQuestionIds.Contains(a.Fk2QuestionId))
+                    .Select(a => a.Fk2QuestionId)
+                    .ToListAsync();
+                answeredQuestionIds = new HashSet<int>(userAnswers);
+            }
+
+            foreach (var stage in stages)
+            {
+                var stageCourseIds = allCourses
+                    .Where(c => c.StageId == stage.Id)
+                    .Select(c => c.Id)
+                    .ToList();
+
+                if (!stageCourseIds.Any())
+                {
+                    stageProgress.Add(new StageProgressItem { StageId = stage.Id, Status = "completed" });
+                    continue;
+                }
+
+                var completedInStage = stageCourseIds.Count(id => completedCourseIds.Contains(id));
+
+                if (completedInStage == stageCourseIds.Count)
+                {
+                    stageProgress.Add(new StageProgressItem { StageId = stage.Id, Status = "completed" });
+                }
+                else
+                {
+                    // Проверяем: есть ли хоть один ответ по курсам этого этапа?
+                    var stageQuestionIds = allCourses
+                        .Where(c => c.StageId == stage.Id)
+                        .SelectMany(c => c.Tests.SelectMany(t => t.Questions.Select(q => q.Id)))
+                        .ToList();
+
+                    bool hasAnyAnswer = stageQuestionIds.Any(qId => answeredQuestionIds.Contains(qId));
+
+                    if (hasAnyAnswer)
+                    {
+                        stageProgress.Add(new StageProgressItem { StageId = stage.Id, Status = "failed" });
+                    }
+                    else
+                    {
+                        stageProgress.Add(new StageProgressItem { StageId = stage.Id, Status = "current" });
+                    }
+                }
+            }
+
+            return new UserProgressResponse
+            {
+                TotalCourses = totalCourses,
+                CompletedCourses = completedCourses,
+                TotalStages = totalStages,
+                CompletedStages = completedStages,
+                StageProgress = stageProgress
+            };
+        }
+
+        private async Task<int?> GetUserRouteIdAsync(int userId)
+        {
+            return await _onboardingContext.UserOnboardingRouteStatuses
+                .Where(r => r.FkUserId == userId)
+                .Select(r => r.FkOnboardingRouteId)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<List<OnboardingStage>> GetStagesForRouteAsync(int routeId)
+        {
+            return await _onboardingContext.OnboardingStages
+                .Where(s => s.FkOnbordingRouteId == routeId)
+                .OrderBy(s => s.OrderIndex)
+                .ToListAsync();
+        }
+
+        private async Task<List<CourseProjection>> GetCoursesForStagesAsync(List<OnboardingStage> stages)
+        {
+            var stageIds = stages.Select(s => (int?)s.Id).ToList();
+            return await _onboardingContext.Courses
+                .Where(c => stageIds.Contains(c.FkOnbordingStage))
+                .OrderBy(c => c.OrderIndex)
+                .Select(c => new CourseProjection
+                {
+                    Id = c.Id,
+                    StageId = c.FkOnbordingStage,
+                    Tests = c.Tests.Select(t => new TestProjection
+                    {
+                        Id = t.Id,
+                        PassingScore = t.PassingScore,
+                        Questions = t.Questions.Select(q => new QuestionProjection
+                        {
+                            Id = q.Id,
+                            CorrectOptionIds = q.QuestionOptions
+                                .Where(opt => opt.CorrectAnswer)
+                                .Select(opt => opt.Id)
+                                .ToList()
+                        }).ToList()
+                    }).ToList()
+                })
+                .ToListAsync();
+        }
+
+        private async Task<HashSet<int>> GetCompletedCourseIdsAsync(int userId, List<CourseProjection> courses)
+        {
+            var completed = new HashSet<int>();
+            foreach (var course in courses)
+            {
+                if (await IsCourseCompletedAsync(userId, course))
+                {
+                    completed.Add(course.Id);
+                }
+            }
+            return completed;
+        }
+
+        private async Task<bool> IsCourseCompletedAsync(int userId, CourseProjection course)
+        {
+            if (!course.Tests.Any())
+                return true;
+
+            foreach (var test in course.Tests)
+            {
+                if (!await IsTestPassedAsync(userId, test))
+                    return false;
+            }
+            return true;
+        }
+
+        private async Task<bool> IsTestPassedAsync(int userId, TestProjection test)
+        {
+            var questionIds = test.Questions.Select(q => q.Id).ToList();
+            if (!questionIds.Any())
+                return true;
+
+            var answeredQuestionIds = await _onboardingContext.Answers
+                .Where(a => a.Fk1UserId == userId && questionIds.Contains(a.Fk2QuestionId))
+                .Select(a => a.Fk2QuestionId)
+                .ToListAsync();
+
+            if (answeredQuestionIds.Count != questionIds.Count)
+                return false;
+
+            decimal score = 0;
+            int totalQuestions = questionIds.Count;
+
+            foreach (var question in test.Questions)
+            {
+                var userAnswer = await _onboardingContext.Answers
+                    .FirstOrDefaultAsync(a => a.Fk1UserId == userId && a.Fk2QuestionId == question.Id);
+                if (userAnswer == null)
+                    return false;
+
+                var selectedOptionIds = await _onboardingContext.AnswerOptions
+                    .Where(ao => ao.FkAnswerId == userAnswer.Id && ao.SelectedAnswerOption.HasValue)
+                    .Select(ao => ao.SelectedAnswerOption.Value)
+                    .ToListAsync();
+
+                var correctSet = new HashSet<int>(question.CorrectOptionIds);
+                var selectedSet = new HashSet<int>(selectedOptionIds);
+
+                if (selectedSet.SetEquals(correctSet))
+                    score++;
+            }
+
+            var requiredScore = test.PassingScore * totalQuestions;
+            return score >= requiredScore;
+        }
+
+        private int CountCompletedStages(
+            List<OnboardingStage> stages,
+            List<CourseProjection> allCourses,
+            HashSet<int> completedCourseIds)
+        {
+            int completed = 0;
+            foreach (var stage in stages)
+            {
+                var stageCourseIds = allCourses
+                    .Where(c => c.StageId == stage.Id)
+                    .Select(c => c.Id)
+                    .ToList();
+
+                if (!stageCourseIds.Any() || stageCourseIds.All(id => completedCourseIds.Contains(id)))
+                {
+                    completed++;
+                }
+            }
+            return completed;
+        }
+
+        private static UserProgressResponse EmptyProgress() => new()
+        {
+            TotalCourses = 0,
+            CompletedCourses = 0,
+            TotalStages = 0,
+            CompletedStages = 0
+        };
+
+        private class CourseProjection
+        {
+            public int Id { get; set; }
+            public int? StageId { get; set; }
+            public List<TestProjection> Tests { get; set; } = new();
+        }
+
+        private class TestProjection
+        {
+            public int Id { get; set; }
+            public decimal? PassingScore { get; set; }
+            public List<QuestionProjection> Questions { get; set; } = new();
+        }
+
+        private class QuestionProjection
+        {
+            public int Id { get; set; }
+            public List<int> CorrectOptionIds { get; set; } = new();
         }
     }
 }

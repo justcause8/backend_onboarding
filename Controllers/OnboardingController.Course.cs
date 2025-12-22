@@ -85,5 +85,14 @@ namespace backend_onboarding.Controllers
             await _onboardingService.DeleteCourseAsync(id);
             return Ok(new { Message = "Курс удален" });
         }
+
+        [HttpGet("course/user-progress")]
+        [Authorize]
+        public async Task<IActionResult> GetUserCourseProgress()
+        {
+            var userId = CurrentUserId; // предполагается, что у вас есть свойство в базовом контроллере
+            var progress = await _onboardingService.GetUserCourseProgressAsync(userId);
+            return Ok(progress);
+        }
     }
 }

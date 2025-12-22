@@ -15,6 +15,7 @@ namespace backend_onboarding.Services.Onboarding
         Task<bool> UpdateOnboardingRouteAsync(int routeId, UpdateOnboardingRouteRequest request);
         Task<bool> DeleteOnboardingRouteAsync(int routeId);
         Task<bool> AssignUserToRouteAsync(int userId, int routeId);
+        Task<int?> GetMyRouteIdAsync(int userId);
 
         // STAGE
         Task<StageResponse?> GetStageByIdAsync(int stageId);
@@ -29,6 +30,7 @@ namespace backend_onboarding.Services.Onboarding
         Task<int> CreateCourseAsync(CreateCourseRequest request);
         Task<bool> UpdateCourseAsync(int courseId, UpdateCourseRequest request);
         Task<bool> DeleteCourseAsync(int courseId);
+        Task<UserProgressResponse> GetUserCourseProgressAsync(int userId);
 
         // MATERIALS
         Task<List<MaterialResponse>> GetMaterialsByCourseIdAsync(int courseId);

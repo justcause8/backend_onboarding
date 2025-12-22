@@ -192,5 +192,15 @@ namespace backend_onboarding.Services.Onboarding
             await _onboardingContext.SaveChangesAsync();
             return true;
         }
+
+        public async Task<int?> GetMyRouteIdAsync(int userId)
+        {
+            var routeStatus = await _onboardingContext.UserOnboardingRouteStatuses
+                .Where(r => r.FkUserId == userId)
+                .Select(r => r.FkOnboardingRouteId)
+                .FirstOrDefaultAsync();
+
+            return routeStatus == default(int) ? (int?)null : routeStatus;
+        }
     }
 }

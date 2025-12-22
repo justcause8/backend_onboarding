@@ -1,4 +1,5 @@
 ﻿using backend_onboarding.Models.DTOs;
+using backend_onboarding.Models.Entitie.DbOnboarding;
 using backend_onboarding.Services.Authentication;
 using backend_onboarding.Services.Onboarding;
 using Microsoft.AspNetCore.Authorization;
@@ -66,6 +67,14 @@ namespace backend_onboarding.Controllers
 
             var result = await _onboardingService.DeleteOnboardingRouteAsync(id);
             return result ? Ok(new { Message = "Маршрут удален" }) : NotFound("Маршрут не найден");
+        }
+
+        [HttpGet("my-route")]
+        [Authorize]
+        public async Task<IActionResult> GetMyRouteId()
+        {
+            var routeId = await _onboardingService.GetMyRouteIdAsync(CurrentUserId);
+            return Ok(new { routeId });
         }
     }
 }
