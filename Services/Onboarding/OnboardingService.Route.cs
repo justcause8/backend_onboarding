@@ -84,7 +84,7 @@ namespace backend_onboarding.Services.Onboarding
                 {
                     FkUserId = userId,
                     FkOnboardingRouteId = newRoute.Id,
-                    Status = "Not Started",
+                    Status = RouteStatuses.NotStarted,
                     // Даты начала и конца не заполняем по условию
                 }).ToList();
 
@@ -103,7 +103,7 @@ namespace backend_onboarding.Services.Onboarding
                 {
                     FkUserId = userId,
                     FkOnboardingStageId = s.Id,
-                    Status = "Not Started"
+                    Status = "current"
                 });
                 _onboardingContext.UserOnboardingStageStatuses.AddRange(stageStatuses);
             }
@@ -142,7 +142,7 @@ namespace backend_onboarding.Services.Onboarding
                     {
                         FkUserId = userId,
                         FkOnboardingRouteId = routeId,
-                        Status = "Not Started"
+                        Status = "current"
                     });
 
                 _onboardingContext.UserOnboardingRouteStatuses.AddRange(newUsers);
@@ -193,6 +193,7 @@ namespace backend_onboarding.Services.Onboarding
             return true;
         }
 
+        // Получение маршрута для пользователя
         public async Task<int?> GetMyRouteIdAsync(int userId)
         {
             var routeStatus = await _onboardingContext.UserOnboardingRouteStatuses
@@ -201,6 +202,61 @@ namespace backend_onboarding.Services.Onboarding
                 .FirstOrDefaultAsync();
 
             return routeStatus == default(int) ? (int?)null : routeStatus;
+        }
+
+        // ОБНОВЛЕНИЕ СТАТУСА МАРШРУТА
+        private async Task UpdateRouteStatusBasedOnStagesAsync(int userId)
+        {
+            var routeId = await GetUserRouteIdAsync(userId);
+            if (!routeId.HasValue) return;
+
+            var routeStatus = await _onboardingContext.UserOnboardingRouteStatuses
+                .FirstOrDefaultAsync(r => r.FkUserId == userId && r.FkOnboardingRouteId == routeId.Value);
+
+            if (routeStatus == null) return;
+
+            var stages = await GetStagesForRouteAsync(routeId.Value);
+            var stageStatuses = await _onboardingContext.UserOnboardingStageStatuses
+                .Where(s => s.FkUserId == userId && stages.Select(st => st.Id).Contains(s.FkOnboardingStageId))
+                .ToListAsync();
+
+            // Проверяем, есть ли хотя бы один этап со статусом "current" и датой начала
+            bool hasStartedStage = stageStatuses.Any(s =>
+                s.Status == "current" && s.FactStartDate.HasValue);
+
+            // Проверяем, завершен ли последний этап
+            var lastStage = stages.OrderByDescending(s => s.OrderIndex).FirstOrDefault();
+            bool isLastStageCompleted = false;
+
+            if (lastStage != null)
+            {
+                var lastStageStatus = stageStatuses.FirstOrDefault(s => s.FkOnboardingStageId == lastStage.Id);
+                isLastStageCompleted = lastStageStatus != null &&
+                                      lastStageStatus.Status == "completed" &&
+                                      lastStageStatus.FactEndDate.HasValue;
+            }
+
+            string newStatus;
+            if (isLastStageCompleted)
+            {
+                newStatus = RouteStatuses.Completed;
+                routeStatus.FactEndDate ??= DateTime.Now;
+            }
+            else if (hasStartedStage)
+            {
+                newStatus = RouteStatuses.InProgress;
+                routeStatus.FactStartDate ??= DateTime.Now;
+            }
+            else
+            {
+                newStatus = RouteStatuses.NotStarted;
+            }
+
+            if (routeStatus.Status != newStatus)
+            {
+                routeStatus.Status = newStatus;
+                await _onboardingContext.SaveChangesAsync();
+            }
         }
     }
 }

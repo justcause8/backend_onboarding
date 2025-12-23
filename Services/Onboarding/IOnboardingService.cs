@@ -23,13 +23,21 @@ namespace backend_onboarding.Services.Onboarding
         Task<bool> UpdateStageAsync(int stageId, UpdateStageRequest request);
         Task<bool> DeleteStageAsync(int stageId);
         Task<bool> AssignUserToStageAsync(int userId, int stageId);
+        Task<bool> UpdateStageStatusAsync(int userId, int stageId, string status);
+        Task RecalculateStageStatusesAsync(int userId);
 
         // COURSE
+        // Методы для работы с курсами
         Task<CourseFullResponse?> GetCourseByIdAsync(int courseId);
         Task<List<CourseFullResponse>> GetAllCoursesFullAsync();
         Task<int> CreateCourseAsync(CreateCourseRequest request);
         Task<bool> UpdateCourseAsync(int courseId, UpdateCourseRequest request);
         Task<bool> DeleteCourseAsync(int courseId);
+
+        // Методы для прохождения курсов
+        Task<bool> StartCourseAsync(int userId, int courseId);
+        Task<bool> CompleteCourseAsync(int userId, int courseId);
+        Task<bool> CheckAndUpdateCourseCompletionAsync(int userId, int courseId);
         Task<UserProgressResponse> GetUserCourseProgressAsync(int userId);
 
         // MATERIALS

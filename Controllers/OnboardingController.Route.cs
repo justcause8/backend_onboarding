@@ -69,12 +69,26 @@ namespace backend_onboarding.Controllers
             return result ? Ok(new { Message = "Маршрут удален" }) : NotFound("Маршрут не найден");
         }
 
-        [HttpGet("my-route")]
+        [HttpGet("route/my-route")]
         [Authorize]
         public async Task<IActionResult> GetMyRouteId()
         {
             var routeId = await _onboardingService.GetMyRouteIdAsync(CurrentUserId);
-            return Ok(new { routeId });
+            if (!routeId.HasValue)
+            {
+                return Ok(new { routeId = (int?)null });
+            }
+            return routeId.HasValue
+                ? Ok(new { RouteId = routeId.Value })
+                : Ok(new { Message = "Маршрут не назначен" });
+        }
+
+        [HttpPost("route/assign-to-user")]
+        [Authorize(Roles = OnboardingRoles.HrAdmin + "," + OnboardingRoles.Mentor)]
+        public async Task<IActionResult> AssignRouteToUser([FromBody] AssignUserToRouteRequest request)
+        {
+            var success = await _onboardingService.AssignUserToRouteAsync(request.UserId, request.RouteId);
+            return ProcessResult(success, "Маршрут не найден или не содержит этапов", "Маршрут назначен пользователю");
         }
     }
 }

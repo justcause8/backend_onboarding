@@ -7,7 +7,7 @@ namespace backend_onboarding.Services.Onboarding
 {
     public partial class OnboardingService : IOnboardingService
     {
-        // 1. Назначение пользователя на конкретный ЭТАП
+        // Назначение пользователя на конкретный ЭТАП
         public async Task<bool> AssignUserToStageAsync(int userId, int stageId)
         {
             // Проверяем, нет ли уже такой записи, чтобы не дублировать
@@ -20,7 +20,7 @@ namespace backend_onboarding.Services.Onboarding
             {
                 FkUserId = userId,
                 FkOnboardingStageId = stageId,
-                Status = "Not Started", // Начальный статус
+                Status = "current", // Используем единую систему статусов
                 FactStartDate = DateTime.Now
             };
 
@@ -28,7 +28,7 @@ namespace backend_onboarding.Services.Onboarding
             return await _onboardingContext.SaveChangesAsync() > 0;
         }
 
-        // 2. Назначение пользователя на МАРШРУТ (авто-заполнение всех этапов)
+        // Назначение пользователя на МАРШРУТ (авто-заполнение всех этапов)
         public async Task<bool> AssignUserToRouteAsync(int userId, int routeId)
         {
             // Получаем все ID этапов этого маршрута
@@ -39,11 +39,27 @@ namespace backend_onboarding.Services.Onboarding
 
             if (!stageIds.Any()) return false;
 
+            // Создаем начальные статусы для всех этапов
             foreach (var stageId in stageIds)
             {
-                await AssignUserToStageAsync(userId, stageId);
+                var existingStatus = await _onboardingContext.UserOnboardingStageStatuses
+                    .FirstOrDefaultAsync(s => s.FkUserId == userId && s.FkOnboardingStageId == stageId);
+
+                if (existingStatus == null)
+                {
+                    var newStatus = new UserOnboardingStageStatus
+                    {
+                        FkUserId = userId,
+                        FkOnboardingStageId = stageId,
+                        Status = "current", // Начальный статус
+                        FactStartDate = DateTime.Now
+                    };
+
+                    _onboardingContext.UserOnboardingStageStatuses.Add(newStatus);
+                }
             }
 
+            await _onboardingContext.SaveChangesAsync();
             return true;
         }
 
@@ -114,7 +130,7 @@ namespace backend_onboarding.Services.Onboarding
                         {
                             FkUserId = userId,
                             FkOnboardingStageId = stage.Id,
-                            Status = "Not Started"
+                            Status = "current" // Используем единую систему
                         });
                     }
                 }

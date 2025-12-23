@@ -56,13 +56,11 @@ namespace backend_onboarding.Controllers
             var existingCourse = await _onboardingService.GetCourseByIdAsync(id);
             if (existingCourse == null) return NotFound("Курс не найден");
 
-            // Проверка прав: только автор или HR-админ (IsHr мы определили ранее в partial классе)
             if (!IsHr && existingCourse.AuthorId != CurrentUserId)
             {
                 return Forbidden("Вы можете редактировать только те курсы, автором которых являетесь.");
             }
 
-            // Вызываем сервис с новым типом DTO
             var result = await _onboardingService.UpdateCourseAsync(id, request);
 
             if (!result) return BadRequest(new { Message = "Не удалось сохранить изменения в базе данных" });
@@ -75,24 +73,117 @@ namespace backend_onboarding.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var existingCourse = await _onboardingService.GetCourseByIdAsync(id);
-            if (existingCourse == null) return NotFound("Курс не найден");
+            if (existingCourse == null) return NotFound(new { Message = "Курс не найден" });
 
             if (existingCourse.AuthorId != CurrentUserId)
             {
-                return Forbid("Удаление чужого курса запрещено");
+                return StatusCode(403, new
+                {
+                    error = "Forbidden",
+                    message = "Удаление чужого курса запрещено"
+                });
             }
 
-            await _onboardingService.DeleteCourseAsync(id);
+            var result = await _onboardingService.DeleteCourseAsync(id);
+
+            if (!result)
+                return BadRequest(new { Message = "Не удалось удалить курс" });
+
             return Ok(new { Message = "Курс удален" });
         }
 
-        [HttpGet("course/user-progress")]
+        [HttpPost("course/{courseId}/start")]
         [Authorize]
-        public async Task<IActionResult> GetUserCourseProgress()
+        public async Task<IActionResult> StartCourse(int courseId)
         {
-            var userId = CurrentUserId; // предполагается, что у вас есть свойство в базовом контроллере
-            var progress = await _onboardingService.GetUserCourseProgressAsync(userId);
-            return Ok(progress);
+            var userId = CurrentUserId;
+
+            try
+            {
+                var result = await _onboardingService.StartCourseAsync(userId, courseId);
+
+                if (result)
+                {
+                    return Ok(new
+                    {
+                        Message = "Курс начат",
+                        CourseId = courseId,
+                        Status = "success",
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    // Возвращаем 200 OK даже если курс уже был начат
+                    // Или если SaveChanges вернул 0 из-за отсутствия изменений
+                    return Ok(new
+                    {
+                        Message = "Курс уже начат или не требует изменений",
+                        CourseId = courseId,
+                        Status = "info",
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку
+                Console.WriteLine($"Ошибка StartCourse: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+
+                // Но возвращаем 200 чтобы пользователь мог продолжить
+                return Ok(new
+                {
+                    Message = "Произошла ошибка, но вы можете продолжить изучение курса",
+                    CourseId = courseId,
+                    Status = "warning",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        // Завершить курс (автоматически после теста)
+        [HttpPost("course/{courseId}/complete")]
+        [Authorize]
+        public async Task<IActionResult> CompleteCourse(int courseId)
+        {
+            var userId = CurrentUserId;
+            var result = await _onboardingService.CompleteCourseAsync(userId, courseId);
+
+            return result
+                ? Ok(new { Message = "Курс завершен", CourseId = courseId })
+                : BadRequest(new { Message = "Курс еще не завершен или не найден" });
+        }
+
+        [HttpPost("course/{courseId}/check-completion")]
+        [Authorize]
+        public async Task<IActionResult> CheckCourseCompletion(int courseId)
+        {
+            var userId = CurrentUserId;
+
+            try
+            {
+                var result = await _onboardingService.CheckAndUpdateCourseCompletionAsync(userId, courseId);
+
+                if (result)
+                    return Ok(new
+                    {
+                        Message = "Курс завершен",
+                        CourseId = courseId,
+                        IsCompleted = true
+                    });
+                else
+                    return Ok(new
+                    {
+                        Message = "Курс еще не завершен",
+                        CourseId = courseId,
+                        IsCompleted = false
+                    });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Ошибка: {ex.Message}" });
+            }
         }
     }
 }
